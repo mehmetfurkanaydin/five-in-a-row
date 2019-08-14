@@ -1,0 +1,13 @@
+<mat-card class="example-card">
+    <mat-card-header>
+        <mat-card-title>{{message}}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <mat-grid-list cols="9" rowHeight="9:6" *ngFor="let key of [].constructor(9); let i = index">
+            <mat-grid-tile *ngFor="let x of grid[i]"><button mat-button>{{x}}</button></mat-grid-tile>
+        </mat-grid-list>
+    </mat-card-content>
+    <mat-card-actions>
+        <button mat-raised-button (click)="login()" color="primary">End Game</button>
+    </mat-card-actions>
+</mat-card>
