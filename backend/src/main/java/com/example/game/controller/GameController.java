@@ -2,11 +2,15 @@ package com.example.game.controller;
 
 import com.example.game.domain.Game;
 import com.example.game.domain.Player;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ForkJoinPool;
 
 @CrossOrigin
@@ -14,41 +18,55 @@ import java.util.concurrent.ForkJoinPool;
 @RequestMapping("/api/game")
 public class GameController {
     private Game activeGame;
+    CountDownLatch latch;
 
     @GetMapping(value = "/newGame")
     public ResponseEntity<String> getGame(@RequestParam String username) {
         Game currentGame = getActiveGame();
+        JsonObject response = new JsonObject();
         if (currentGame == null) {
             Game newGame = new Game(username);
             setActiveGame(newGame);
-            return new ResponseEntity<>(newGame.getGameInfo().toString(), HttpStatus.OK);
+            response.addProperty("status", "Waiting for second player!");
+            latch = new CountDownLatch(1);
+            return new ResponseEntity<>(response.toString(), HttpStatus.OK);
         } else {
             if(currentGame.getCurrentPlayerCount() == 1) {
                 currentGame.addPlayer(username);
                 currentGame.setPlayerTurn(currentGame.getPlayers()[0].getUsername());
+                latch.countDown();
                 return new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
             } else if (currentGame.getCurrentPlayerCount() == 2) {
-                return new ResponseEntity<>("Game is Full", HttpStatus.BAD_REQUEST);
+                response.addProperty("status", "Game is Full");
+                return new ResponseEntity<>(response.toString(), HttpStatus.OK);
             }
         }
-        return new ResponseEntity<>("Server error", HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>("Server error", HttpStatus.OK);
     };
 
-    @PostMapping(value = "/move")
-    public ResponseEntity<String> playerMove(@RequestParam String username, @RequestParam String row, @RequestParam String colm) {
+    @PostMapping(value = "/makeMove")
+    public ResponseEntity<String> playerMove(@RequestBody String moveDataJSON) {
         Game currentGame = getActiveGame();
-        if (currentGame.getPlayerTurn() != username) {
+        JsonObject moveData = new Gson().fromJson(moveDataJSON, JsonObject.class);
+        if (!currentGame.getPlayerTurn().equals(moveData.get("username").getAsString())) {
             return new ResponseEntity<>("Not your turn!", HttpStatus.BAD_REQUEST);
         }
 
         boolean result;
-        if(currentGame.getPlayers()[0].getUsername() == username) {
+        String row = moveData.get("row").getAsString();
+        String colm = moveData.get("colm").getAsString();
+        int nextPlayer;
+        if(currentGame.getPlayers()[0].getUsername().equals(moveData.get("username").getAsString())) {
             result = currentGame.insertToGrid(row, colm, currentGame.getPlayers()[0].getIcon());
+            nextPlayer = 1;
         } else {
             result = currentGame.insertToGrid(row, colm, currentGame.getPlayers()[1].getIcon());
+            nextPlayer = 0;
         }
 
         if (result) {
+            currentGame.setPlayerTurn(currentGame.getPlayers()[nextPlayer].getUsername());
+            latch.countDown();
             return new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
         } else {
             return new ResponseEntity<>("Server Error!", HttpStatus.BAD_REQUEST);
@@ -56,13 +74,21 @@ public class GameController {
     };
 
     @GetMapping("/turn")
-    public DeferredResult<ResponseEntity<?>> playerMove(@RequestParam String username) {
-        DeferredResult<ResponseEntity<?>> output = new DeferredResult<>();
+    public DeferredResult<ResponseEntity<?>> playerTurn(@RequestParam String username) {
+        DeferredResult<ResponseEntity<?>> output = new DeferredResult<ResponseEntity<?>>(800000l );
 
-        ForkJoinPool.commonPool().submit(() -> {
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        forkJoinPool.submit(() -> {
             Game currentGame = getActiveGame();
-            while(currentGame.getPlayerTurn() != username) {}
-            output.setResult(ResponseEntity.ok("Your Turn!"));
+            latch = new CountDownLatch(1);
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            ResponseEntity response = new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
+            output.setResult(response);
         });
 
         return output;
