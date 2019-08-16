@@ -20,6 +20,62 @@ public class GameController {
     private Game activeGame;
     CountDownLatch latch;
 
+
+    private String checkRow(int r0, int c0, int dr, int dc, int len, int maxRow, int maxColm, String [][] board) {
+        String icon =  board[r0][c0];
+        for (int k = 0 ; k != len ; k++) {
+            int r = r0 + k*dr;
+            int c = c0 + k*dc;
+            if (r < 0 || c < 0 || r >= maxRow || c >= maxColm || !(board[r][c].equals(icon))) {
+                return "not_found";
+            }
+        }
+        return icon;
+    }
+
+    public String getGameStatus(Game currentGame) {
+        int maxRow = currentGame.getRow();
+        int maxCol = currentGame.getColm();
+
+        String[][] board = currentGame.getGrid();
+        int moves = currentGame.getMoves();
+        String notFound = "not_found";
+        String winnerIcon = notFound;
+
+        for (int r = 0 ; r != maxRow ; r++) {
+            for (int c = 0 ; c != maxCol ; c++) {
+                String foundedIcon;
+
+                if (!board[r][c].equals("_")) {
+                    foundedIcon = checkRow(r, c, 0, 1, 5, maxRow, maxCol, board);
+                    if (!foundedIcon.equals(notFound)) {
+                        winnerIcon = foundedIcon;
+                    }
+                    foundedIcon = checkRow(r, c, 1, 0, 5, maxRow, maxCol, board);
+                    if (!foundedIcon.equals(notFound)) {
+                        winnerIcon = foundedIcon;
+                    }
+                    foundedIcon = checkRow(r, c, 1, 1, 5, maxRow, maxCol, board);
+                    if (!foundedIcon.equals(notFound)) {
+                        winnerIcon = foundedIcon;
+                    }
+                    foundedIcon = checkRow(r, c, 1, -1, 5, maxRow, maxCol, board);
+                    if (!foundedIcon.equals(notFound)) {
+                        winnerIcon = foundedIcon;
+                    }
+                }
+            }
+        }
+
+        if (!winnerIcon.equals(notFound)) {
+            return winnerIcon;
+        } else if (moves == maxRow * maxCol) {
+            return "tie";
+        } else {
+            return "continue";
+        }
+    }
+
     @GetMapping(value = "/newGame")
     public ResponseEntity<String> getGame(@RequestParam String username) {
         Game currentGame = getActiveGame();
@@ -65,7 +121,16 @@ public class GameController {
         }
 
         if (result) {
-            currentGame.setPlayerTurn(currentGame.getPlayers()[nextPlayer].getUsername());
+            String gameStatus = getGameStatus(currentGame);
+            if (gameStatus.equals("tie")) {
+                currentGame.setTie(true);
+                setActiveGame(null);
+            } else if (!gameStatus.equals("continue")) {
+                currentGame.setWinnerWithIcon(gameStatus);
+                setActiveGame(null);
+            } else {
+                currentGame.setPlayerTurn(currentGame.getPlayers()[nextPlayer].getUsername());
+            }
             latch.countDown();
             return new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
         } else {
@@ -75,7 +140,7 @@ public class GameController {
 
     @GetMapping("/turn")
     public DeferredResult<ResponseEntity<?>> playerTurn(@RequestParam String username) {
-        DeferredResult<ResponseEntity<?>> output = new DeferredResult<ResponseEntity<?>>(800000l );
+        DeferredResult<ResponseEntity<?>> output = new DeferredResult<ResponseEntity<?>>();
 
         ForkJoinPool forkJoinPool = new ForkJoinPool();
         forkJoinPool.submit(() -> {
@@ -94,8 +159,8 @@ public class GameController {
         return output;
     }
 
-    @GetMapping("/deleteUsers")
-    public ResponseEntity<String> deleteUsers() {
+    @GetMapping("/disconnectUser")
+    public ResponseEntity<String> deleteUsers(@RequestParam String username) {
 
             Game currentGame = getActiveGame();
             currentGame.getPlayers()[0] = null;

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import {Router} from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { GameService } from '../services/game.service';
@@ -21,10 +22,12 @@ export class GameComponent implements OnInit {
     ['_', '_', '_', '_' , '_' , '_', '_' , '_', '_'],
     ['_', '_', '_', '_' , '_' , '_', '_' , '_', '_'],
   ];
-  username = '';
-  turn = '';
+  username: string;
+  turn: string;
+  winner: string;
+  tie: boolean = false; 
 
-  constructor(private gameService: GameService) { 
+  constructor(private gameService: GameService, private router: Router) { 
     this.username = this.gameService.getCurrentUsername();
     this.gameSub = this.gameService.getGameListener()
     .subscribe((data) => {
@@ -32,6 +35,16 @@ export class GameComponent implements OnInit {
       this.icon = data.players[this.username];
       this.status = data.status;
       this.turn = data.turn;
+      this.winner = data.winner;
+      this.tie = data.tie;
+      this.message = this.turn + "'s turn!"
+      if (this.winner) {
+        alert("Winner is " + this.winner + "!");
+        this.router.navigate(['/']);
+      } else if (this.tie) {
+        alert("Tie!");
+        this.router.navigate(['/']);
+      }
     });
   };
 
@@ -53,6 +66,7 @@ export class GameComponent implements OnInit {
     this.icon = gameData.players[this.username];
     this.status = gameData.status;
     this.turn = gameData.turn;
+    this.message = this.turn + "'s turn!"
   }
 
 }

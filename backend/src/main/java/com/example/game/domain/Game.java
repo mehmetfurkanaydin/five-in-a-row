@@ -5,15 +5,44 @@ import com.google.gson.JsonObject;
 
 public class Game {
 
-    private String[][] grid = new String[6][9];
+    int row = 6;
+    int colm = 9;
+    private String[][] grid = new String[row][colm];
     private int maxPlayer = 2;
     private String status;
     private Player[] players = new Player[maxPlayer];
     private String playerTurn;
+    private int moves = 0;
+    private String winner;
+    private boolean tie;
 
     public Game(String username) {
         initializeGrid();
         addPlayer(username);
+    }
+
+    public boolean isTie() {
+        return tie;
+    }
+
+    public void setTie(boolean tie) {
+        this.tie = tie;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public void setRow(int row) {
+        this.row = row;
+    }
+
+    public int getColm() {
+        return colm;
+    }
+
+    public void setColm(int colm) {
+        this.colm = colm;
     }
 
     public void addPlayer(String username) {
@@ -29,9 +58,25 @@ public class Game {
        }
     }
 
+    public String getWinner() {
+        return winner;
+    }
+
+    public void setWinner(String winner) {
+        this.winner = winner;
+    }
+
+    public void setWinnerWithIcon(String icon) {
+        if(getPlayers()[0].getIcon().equals(icon)) {
+            setWinner(getPlayers()[0].getUsername());
+        } else {
+            setWinner(getPlayers()[1].getUsername());
+        }
+    }
+
     private void initializeGrid () {
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 9; j++) {
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < colm; j++) {
                 this.grid[i][j] = "_";
             }
         }
@@ -39,9 +84,9 @@ public class Game {
 
     private JsonObject getCurrentGrid () {
         JsonObject currentGrid = new JsonObject();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < row; i++) {
             JsonObject currentRow = new JsonObject();
-            for (int j = 0; j < 9; j++) {
+            for (int j = 0; j < colm; j++) {
                 currentRow.addProperty(Integer.toString(j), this.grid[i][j]);
             }
             currentGrid.add(Integer.toString(i), currentRow);
@@ -50,11 +95,17 @@ public class Game {
         return currentGrid;
     };
 
+    public String[][] getGrid () {
+        return this.grid;
+    }
+
     public JsonObject getGameInfo() {
         JsonObject currentGameInfo = new JsonObject();
         currentGameInfo.add("grid", getCurrentGrid());
         currentGameInfo.addProperty("status", this.status);
         currentGameInfo.addProperty("turn", getPlayerTurn());
+        currentGameInfo.addProperty("winner", getWinner());
+        currentGameInfo.addProperty("tie", isTie());
 
         JsonObject playerInfo = new JsonObject();
 
@@ -89,8 +140,13 @@ public class Game {
         }
 
         this.grid[x][y] = icon;
+        this.moves++;
 
         return true;
+    }
+
+    public int getMoves() {
+        return this.moves;
     }
 
     public String getPlayerTurn() {

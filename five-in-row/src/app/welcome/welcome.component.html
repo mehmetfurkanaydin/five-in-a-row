@@ -17,6 +17,6 @@
         <mat-spinner [style.display]="showSpinner ? 'block' : 'none'"></mat-spinner>
     </mat-card-content>
     <mat-card-actions>
-        <button mat-raised-button (click)="login()" color="primary">Start Game</button>
+        <button mat-raised-button (click)="login()" color="primary" [disabled]="message = 'Waiting for second player!';">Start Game</button>
     </mat-card-actions>
 </mat-card>
