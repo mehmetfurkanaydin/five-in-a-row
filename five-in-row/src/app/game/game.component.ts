@@ -43,7 +43,16 @@ export class GameComponent implements OnInit {
     }
   }
 
+  makeMove(row, colm) {
+    this.gameService.makeMove(row,colm);
+  }
+
   ngOnInit() {
+    const gameData = this.gameService.getGameData();
+    this.updateGrid(gameData.grid);
+    this.icon = gameData.players[this.username];
+    this.status = gameData.status;
+    this.turn = gameData.turn;
   }
 
 }
