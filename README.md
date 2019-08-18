@@ -9,7 +9,7 @@ To run backend
 To run frontend 
 - `cd cd five-in-row/`
 - `npm install`
-- `ng serve`
+- `ng serve / npm start`
 
 ### <b>How to play?</b>
 - Open the browser and go to `http://localhost:4200/`
