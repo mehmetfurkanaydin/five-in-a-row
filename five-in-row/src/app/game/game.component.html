@@ -8,6 +8,6 @@
         </mat-grid-list>
     </mat-card-content>
     <mat-card-actions>
-        <button mat-raised-button (click)="login()" color="primary">End Game</button>
+        <button mat-raised-button (click)="disconnect()" color="primary" [disabled]="turn !== username">End Game</button>
     </mat-card-actions>
 </mat-card>

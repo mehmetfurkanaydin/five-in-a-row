@@ -21,6 +21,7 @@ public class GameController {
     CountDownLatch latch;
 
 
+    // Check status of rows
     private String checkRow(int r0, int c0, int dr, int dc, int len, int maxRow, int maxColm, String [][] board) {
         String icon =  board[r0][c0];
         for (int k = 0 ; k != len ; k++) {
@@ -33,6 +34,8 @@ public class GameController {
         return icon;
     }
 
+    // Get status of the currentGame
+    // Returns winner icon, continue or tie
     public String getGameStatus(Game currentGame) {
         int maxRow = currentGame.getRow();
         int maxCol = currentGame.getColm();
@@ -76,6 +79,7 @@ public class GameController {
         }
     }
 
+    // Create a new game
     @GetMapping(value = "/newGame")
     public ResponseEntity<String> getGame(@RequestParam String username) {
         Game currentGame = getActiveGame();
@@ -100,10 +104,15 @@ public class GameController {
         return new ResponseEntity<>("Server error", HttpStatus.OK);
     };
 
+    // Make move for current game
     @PostMapping(value = "/makeMove")
     public ResponseEntity<String> playerMove(@RequestBody String moveDataJSON) {
         Game currentGame = getActiveGame();
         JsonObject moveData = new Gson().fromJson(moveDataJSON, JsonObject.class);
+        if(currentGame == null) {
+            return new ResponseEntity<>("There is no game!", HttpStatus.BAD_REQUEST);
+        }
+
         if (!currentGame.getPlayerTurn().equals(moveData.get("username").getAsString())) {
             return new ResponseEntity<>("Not your turn!", HttpStatus.BAD_REQUEST);
         }
@@ -138,6 +147,7 @@ public class GameController {
         }
     };
 
+    // Wait for game turn
     @GetMapping("/turn")
     public DeferredResult<ResponseEntity<?>> playerTurn(@RequestParam String username) {
         DeferredResult<ResponseEntity<?>> output = new DeferredResult<ResponseEntity<?>>();
@@ -153,20 +163,36 @@ public class GameController {
                 e.printStackTrace();
             }
             ResponseEntity response = new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
+            if (currentGame.getWinner() != null) {
+                setActiveGame(null);
+            }
+            output.setResult(response);
+        });
+
+        output.onTimeout(() -> {
+            Game currentGame = getActiveGame();
+            latch.countDown();
+            ResponseEntity response;
+            if(currentGame == null) {
+                response = new ResponseEntity<>("There is no game!", HttpStatus.BAD_REQUEST);
+            } else {
+                currentGame.setOtherPlayerWinner(currentGame.getPlayerTurn());
+                response = new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
+            }
+            setActiveGame(null);
             output.setResult(response);
         });
 
         return output;
     }
 
-    @GetMapping("/disconnectUser")
+    // Disconnect from current game
+    @GetMapping("/disconnect")
     public ResponseEntity<String> deleteUsers(@RequestParam String username) {
-
-            Game currentGame = getActiveGame();
-            currentGame.getPlayers()[0] = null;
-            currentGame.getPlayers()[1] = null;
-
-        return new ResponseEntity<>("OK", HttpStatus.OK);
+         Game currentGame = getActiveGame();
+         currentGame.setOtherPlayerWinner(username);
+         latch.countDown();
+         return new ResponseEntity<>(currentGame.getGameInfo().toString(), HttpStatus.OK);
     }
 
     public Game getActiveGame() {

@@ -45,7 +45,17 @@ export class GameService {
     }))
     .subscribe(responseData => {
       this.gameUpdated.next(responseData);
-      this.waitTurn();
+      if(!responseData.winner) {
+        this.waitTurn();
+      }
+    });
+  }
+
+  disconnectUser()  {
+    this.http
+    .get<any>('http://localhost:8080/api/game/disconnect?username=' + this.username)
+    .subscribe(responseData => {
+      this.gameUpdated.next(responseData);
     });
   }
 

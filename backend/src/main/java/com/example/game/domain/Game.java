@@ -99,6 +99,14 @@ public class Game {
         return this.grid;
     }
 
+    public void setOtherPlayerWinner (String username) {
+        if (!(this.players[0].getUsername().equals(username))) {
+            setWinner(this.players[0].getUsername());
+        } else  {
+            setWinner(this.players[1].getUsername());
+        }
+    }
+
     public JsonObject getGameInfo() {
         JsonObject currentGameInfo = new JsonObject();
         currentGameInfo.add("grid", getCurrentGrid());

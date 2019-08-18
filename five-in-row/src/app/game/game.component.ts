@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import {Router} from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { GameService } from '../services/game.service';
@@ -9,7 +9,7 @@ import { GameService } from '../services/game.service';
   templateUrl: './game.component.html',
   styleUrls: ['./game.component.less']
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements OnInit, OnDestroy {
   gameSub: Subscription;
   message = '';
   icon = '';
@@ -25,9 +25,9 @@ export class GameComponent implements OnInit {
   username: string;
   turn: string;
   winner: string;
-  tie: boolean = false; 
+  tie: boolean = false;
 
-  constructor(private gameService: GameService, private router: Router) { 
+  constructor(private gameService: GameService, private router: Router, private activatedRoute : ActivatedRoute) { 
     this.username = this.gameService.getCurrentUsername();
     this.gameSub = this.gameService.getGameListener()
     .subscribe((data) => {
@@ -56,6 +56,11 @@ export class GameComponent implements OnInit {
     }
   }
 
+  disconnect() {
+    this.gameService.disconnectUser();
+    this.router.navigate(['/']);
+  }
+
   makeMove(row, colm) {
     this.gameService.makeMove(row,colm);
   }
@@ -67,6 +72,10 @@ export class GameComponent implements OnInit {
     this.status = gameData.status;
     this.turn = gameData.turn;
     this.message = this.turn + "'s turn!"
+  }
+
+  ngOnDestroy() {
+    this.gameSub.unsubscribe();
   }
 
 }
