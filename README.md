@@ -7,7 +7,7 @@ To run backend
 
 #### <b>five-in-row</b> folder: Frontend of the game. Based on Angular 8.
 To run frontend 
-- `cd cd five-in-row/`
+- `cd five-in-row/`
 - `npm install`
 - `ng serve / npm start`
 
